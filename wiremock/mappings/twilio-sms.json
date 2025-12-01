@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPattern": "/2010-04-01/Accounts/AC[0-9a-zA-Z]{32}/Messages\\.json"
+  },
+  "response": {
+    "status": 201,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "sid": "SM1234567890abcdef1234567890abcdef",
+      "status": "queued"
+    }
+  }
+}

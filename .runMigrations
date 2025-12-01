@@ -1,0 +1,54 @@
+
+  "
+
+--
+
+# 1) levantar infra
+docker compose up -d
+
+# 2) (opcional) correr migraciones con la CLI (ya lo hiciste):
+#    si partís de DB limpia y migración generada por entidades:
+docker run --rm -it `
+  --network=cobranzas-bircle-like_default `
+  -v "${PWD}:/app" -w /app `
+  -e DB_HOST=db -e DB_PORT=5432 `
+  -e DB_USER=postgres -e DB_PASS=postgres -e DB_NAME=cobranzas `
+  node:20 bash -lc "npm ci --no-audit --no-fund || npm i --legacy-peer-deps; npx typeorm-ts-node-commonjs migration:run -d src/shared/orm.datasource.ts"
+
+# 3) levantar Nest local apuntando a la DB del host (o al contenedor “db”)
+$env:PORT='3000'
+$env:GLOBAL_PREFIX='api'
+$env:NODE_ENV='production'
+$env:DB_HOST='localhost'   # si tu node corre en el host y DB expone 5432
+$env:DB_PORT='5432'
+$env:DB_USER='postgres'
+$env:DB_PASS='postgres'
+$env:DB_NAME='cobranzas'
+$env:REDIS_URL='redis://localhost:6379'
+# ... (resto de envs)
+npm run start:dev
+docker run --rm -it `
+  --network=cobranzas-bircle-like_default `
+  -v "${PWD}:/app" -w /app `
+  -e DB_HOST=db -e DB_PORT=5432 `
+  -e DB_USER=postgres -e DB_PASS=postgres -e DB_NAME=cobranzas `
+  node:20 bash -lc "
+    set -e
+    rm -rf /tmp/mig && mkdir -p /tmp/mig &&
+    cp -r src package.json tsconfig.json /tmp/mig &&
+    cd /tmp/mig &&
+    npm i --no-audit --no-fund &&
+    # Genera el diff a partir de ENTIDADES → DB (vacía). Salida en la carpeta del host:
+    npx typeorm-ts-node-commonjs migration:generate -d src/shared/orm.datasource.ts /app/migrations/InitSchema &&
+    # Para ejecutar, copiamos la migración generada a /tmp/mig/src/migrations y corremos desde ahí:
+    mkdir -p src/migrations &&
+    cp /app/migrations/*.ts src/migrations/ &&
+    npx typeorm-ts-node-commonjs migration:run -d src/shared/orm.datasource.ts
+
+
+
+    --para pruebas
+
+                  tenant_id               |               case_id
+--------------------------------------+--------------------------------------
+ b3ee69d9-a3dd-439d-8fbb-c7e16723aefd | 2d8c5541-755d-4ecb-bce4-55cf23ac3fa5

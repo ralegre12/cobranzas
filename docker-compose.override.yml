@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  api:
+    environment:
+      # App
+      PORT: 3000
+      GLOBAL_PREFIX: api
+      NODE_ENV: development
+
+      # DB/Redis (iguales a tu compose base)
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: cobranzas
+      REDIS_URL: redis://redis:6379
+
+      # --- Mail (MailHog) ---
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      # SMTP_USER/PASS vacíos -> tu service igual envía a MailHog sin auth
+
+      # --- WhatsApp (Meta) simulación ---
+      # No dejes vacíos para evitar el modo MOCK en tu MessagingService
+      WA_PHONE_NUMBER_ID: '111222333444555'
+      WA_ACCESS_TOKEN: 'fake-wa-token'
+      WA_API_VERSION: 'v20.0'
+      META_GRAPH_BASE_URL: 'http://wiremock:8080' # <-- apunte a WireMock
+
+      # --- SMS (Twilio) simulación ---
+      TWILIO_ACCOUNT_SID: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      TWILIO_AUTH_TOKEN: 'fake-twilio-token'
+      TWILIO_FROM: '+12345678900'
+      TWILIO_BASE_URL: 'http://wiremock:8080' # <-- apunte a WireMock
+
+      # Forzar NO-MOCK (tu código usa MESSAGING_MODE=mock para simular sin HTTP)
+      MESSAGING_MODE: 'live'
+
+    depends_on:
+      - wiremock
+      - mailhog
+    ports:
+      - '3000:3000'
+
+  wiremock:
+    image: wiremock/wiremock:3.9.2
+    command: ['--verbose', '--global-response-templating']
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings
+      - ./wiremock/__files:/home/wiremock/__files
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - '8025:8025' # UI web
+      - '1025:1025' # SMTP

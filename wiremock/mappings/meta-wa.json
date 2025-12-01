@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPattern": "/v20.0/.*/messages"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "messages": [{ "id": "wamid.HBgMNTU1MTIzNDU2Nzg5FQIAERgSODMxQ0tGSkxNTk9QUVI" }]
+    }
+  }
+}

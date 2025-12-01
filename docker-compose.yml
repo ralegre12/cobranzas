@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-cobranzas}
+    ports:
+      # Mapeo a 55432 para evitar conflictos con un Postgres local en 5432
+      - '127.0.0.1:5400:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-cobranzas}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: node:20
+    working_dir: /app
+    command: >
+      bash -lc "
+        npm ci --no-fund --no-audit || npm i --legacy-peer-deps &&
+        npx typeorm-ts-node-commonjs migration:run -d src/shared/orm.datasource.ts &&
+        npm run start:dev
+      "
+    volumes:
+      - .:/app
+      # cachea node_modules para no reinstalar cada vez
+      - node_modules:/app/node_modules
+    environment:
+      # OJO: dentro del contenedor la DB es 'db' (red interna de Docker)
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_NAME: ${DB_NAME:-cobranzas}
+      REDIS_URL: redis://redis:6379
+      PORT: 3000
+      GLOBAL_PREFIX: api
+      NODE_ENV: development
+      # completa o deja vacíos los de proveedores si querés simular
+      WA_PHONE_NUMBER_ID: ''
+      WA_ACCESS_TOKEN: ''
+      WA_APP_SECRET: ''
+      WHATSAPP_VERIFY_TOKEN: verify-me
+      SMTP_HOST: ''
+      SMTP_PORT: '587'
+      SMTP_USER: ''
+      SMTP_PASS: ''
+      TWILIO_ACCOUNT_SID: ''
+      TWILIO_AUTH_TOKEN: ''
+      TWILIO_FROM: ''
+      MP_ACCESS_TOKEN: ''
+      MP_NOTIFICATION_URL: http://localhost:3000/api/payments/webhooks/mercadopago
+      MP_WEBHOOK_SECRET: ''
+      MP_BACK_URL_SUCCESS: ''
+      MP_BACK_URL_PENDING: ''
+      MP_BACK_URL_FAILURE: ''
+      SEED_TENANT_NAME: DemoCo
+      MESSAGING_MODE: 'mock'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+
+volumes:
+  dbdata:
+  node_modules:
