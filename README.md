@@ -1,4 +1,4 @@
-# Cobranzas (Bircle-like) – NestJS + TypeORM
+# Cobranzas  – NestJS + TypeORM
 
 Omnicanal **WhatsApp/SMS/Email/Voz**, **Pagos (Mercado Pago)**, **Campañas (BullMQ)** y **webhooks**.
 
